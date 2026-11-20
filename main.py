@@ -24,7 +24,10 @@ def publish() -> Path:
     if len(payload) > 1_048_576:
         raise SystemExit(f"entry.png too large: {len(payload)} bytes")
     target.write_bytes(payload)
-    digest = hashlib.sha256(target.read_bytes()).hexdigest()
+    written = target.read_bytes()
+    if written != payload:
+        raise SystemExit(f"copy mismatch: {target} differs from entry.png")
+    digest = hashlib.sha256(written).hexdigest()
     print(f"wrote {target} ({len(payload)} bytes, sha256 {digest})")
     return target
 
