@@ -1,37 +1,55 @@
 #!/usr/bin/env python3
-"""news-image-20261120 entry: ship the finished front page.
+"""news-image-20261120 v2 entry point.
 
-The front page itself (entry.png, 1024x1024, built in this session by
-build_frontpage.py from six AI-generated text-free panels plus
-PIL-typeset headlines) is committed next to this program. Running this
-program copies that exact image, byte for byte, to the output path the
-kit expects. No network, no randomness, no drawing at run time: two
-runs always produce identical bytes.
+Copies the v2 front page (entry.png, 1024x1024, "ONE WORLD, ONE DAY"
+for Friday 20 November 2026) into the harness output directory and
+proves the copy is byte-identical to the source before exiting.
+25 stories on the page: 1 lead (Kyiv) + 4 photo panels (Akvan,
+Shenzhen, COP31, AI rout) + 20 one-line briefs.
+
+Pure Python 3.13 standard library; no network, no third-party
+packages. Deterministic: the same entry.png bytes are produced on
+every run, so the emitted file's sha256 never changes.
 """
 import hashlib
+import os
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-SOURCE = HERE / "entry.png"
+
+def pick_output_folder():
+    """Harness output dir, or /output when the variable is unset."""
+    chosen = os.environ.get("MAKEFUN_OUTPUT_DIR", "").strip()
+    if not chosen:
+        chosen = "/output"
+    return Path(chosen)
 
 
-def publish() -> Path:
-    target_dir = Path(__import__("os").environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
+def fingerprint(blob):
+    return hashlib.sha256(blob).hexdigest()
+
+
+def emit_entry():
+    here = Path(__file__).resolve().parent
+    source_path = here / "entry.png"
+    payload = source_path.read_bytes()
+    print(f"source: {source_path} ({len(payload)} bytes, "
+          f"sha256 {fingerprint(payload)})")
+
+    target_dir = pick_output_folder()
     target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / "entry.png"
-    payload = SOURCE.read_bytes()
-    if len(payload) > 1_048_576:
-        raise SystemExit(f"entry.png too large: {len(payload)} bytes")
-    target.write_bytes(payload)
-    written = target.read_bytes()
-    if written != payload:
-        raise SystemExit(f"copy mismatch: {target} differs from entry.png")
-    digest = hashlib.sha256(written).hexdigest()
-    print(f"wrote {target} ({len(payload)} bytes, sha256 {digest})")
-    return target
+    target_path = target_dir / "entry.png"
+    target_path.write_bytes(payload)
+
+    echoed = target_path.read_bytes()
+    if echoed != payload:
+        print(f"ERROR: {target_path} does not match {source_path}",
+              file=sys.stderr)
+        return 1
+    print(f"emitted: {target_path} ({len(echoed)} bytes, "
+          f"sha256 {fingerprint(echoed)}) — verified identical")
+    return 0
 
 
 if __name__ == "__main__":
-    publish()
-    sys.exit(0)
+    sys.exit(emit_entry())
