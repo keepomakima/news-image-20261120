@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+out/
+entry-300.png
+entry-top.png
+entry-bottom.png
