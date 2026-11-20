@@ -33,8 +33,13 @@ def main():
         print("source %s" % src_hash, file=sys.stderr)
         print("copy   %s" % dst_hash, file=sys.stderr)
         return 1
+    size = os.path.getsize(dst)
+    if size > 1024 * 1024:
+        print("ERROR: output image is %d bytes, over the 1 MiB cap"
+              % size, file=sys.stderr)
+        return 1
     print("copied %s -> %s (%d bytes) sha256=%s"
-          % (src, dst, os.path.getsize(dst), dst_hash))
+          % (src, dst, size, dst_hash))
     return 0
 
 
