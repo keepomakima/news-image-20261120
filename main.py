@@ -1,47 +1,30 @@
 #!/usr/bin/env python3
-"""news-image-20261120 v3 entrypoint.
+"""news-image-20261120 v4 entrypoint: copy entry.png to the output dir.
 
-Copies the front-page image (entry.png, built in-session by
-build_frontpage_v3.py) to the output directory and verifies the copy is
-byte-identical to the source. Standard library only.
+Stdlib only, no network, deterministic. The image is pre-rendered; this
+program only copies it byte for byte and verifies the copy.
 """
 import hashlib
 import os
 import shutil
 import sys
 
-
-def sha256(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entry.png")
 
 
 def main():
-    here = os.path.dirname(os.path.abspath(__file__))
-    src = os.path.join(here, "entry.png")
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
     dst = os.path.join(out_dir, "entry.png")
-    shutil.copyfile(src, dst)
-    src_hash = sha256(src)
-    dst_hash = sha256(dst)
-    if src_hash != dst_hash:
-        print("ERROR: copied bytes differ from source", file=sys.stderr)
-        print("source %s" % src_hash, file=sys.stderr)
-        print("copy   %s" % dst_hash, file=sys.stderr)
-        return 1
-    size = os.path.getsize(dst)
-    if size > 1024 * 1024:
-        print("ERROR: output image is %d bytes, over the 1 MiB cap"
-              % size, file=sys.stderr)
-        return 1
-    print("copied %s -> %s (%d bytes) sha256=%s"
-          % (src, dst, size, dst_hash))
-    return 0
+    shutil.copyfile(SRC, dst)
+    with open(SRC, "rb") as fh:
+        src_bytes = fh.read()
+    with open(dst, "rb") as fh:
+        dst_bytes = fh.read()
+    assert src_bytes == dst_bytes, "copied bytes differ from entry.png"
+    print("wrote %s (%d bytes) sha256=%s" % (
+        dst, len(dst_bytes), hashlib.sha256(dst_bytes).hexdigest()))
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
