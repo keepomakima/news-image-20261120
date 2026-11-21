@@ -22,6 +22,7 @@ def main():
     with open(dst, "rb") as fh:
         dst_bytes = fh.read()
     assert src_bytes == dst_bytes, "copied bytes differ from entry.png"
+    assert len(dst_bytes) <= 1024 * 1024, "entry.png exceeds the 1 MiB cap"
     print("wrote %s (%d bytes) sha256=%s" % (
         dst, len(dst_bytes), hashlib.sha256(dst_bytes).hexdigest()))
 
